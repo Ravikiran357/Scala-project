@@ -3,8 +3,7 @@ package cse512
 object HotzoneUtils {
 
   def ST_Contains(queryRectangle: String, pointString: String ): Boolean = {
-    // YOU NEED TO CHANGE THIS PART
-    // return true // YOU NEED TO CHANGE THIS PART
+    // checking if point lies in the queryRectangle
     var arr = queryRectangle.split(",")
     var doubleArr = arr.map(_.toDouble)
     var pointArr = pointString.split(",")
@@ -15,7 +14,4 @@ object HotzoneUtils {
      return false
     }
   }
-
-  // YOU NEED TO CHANGE THIS PART
-
 }
