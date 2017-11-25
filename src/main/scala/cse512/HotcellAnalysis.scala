@@ -14,44 +14,43 @@ object HotcellAnalysis {
 def runHotcellAnalysis(spark: SparkSession, pointPath: String): DataFrame =
   {
     // Load the original data from a data source
-    var pickupInfo = spark.read.format("com.databricks.spark.csv").option("delimiter",";").option("header","false").load(pointPath);
+    var pickupInfo = spark.read.format("com.databricks.spark.csv").option("delimiter",";").option("header","false").load(pointPath)
     pickupInfo.createOrReplaceTempView("nyctaxitrips")
     pickupInfo.show()
 
-
     // Assign cell coordinates based on pickup points
-    spark.udf.register("CalculateX",(pickupPoint: String)=>((
-      HotcellUtils.CalculateCoordinate(pickupPoint, 1)
-      )))
-    spark.udf.register("CalculateY",(pickupPoint: String)=>((
-      HotcellUtils.CalculateCoordinate(pickupPoint, 0)
-      )))
-    spark.udf.register("CalculateZ",(pickupTime: String)=>((
-      HotcellUtils.CalculateCoordinate(pickupTime, 2)
-      )))
+    spark.udf.register("CalculateX",(pickupPoint: String)=> HotcellUtils.CalculateCoordinate(pickupPoint, 1))
+    spark.udf.register("CalculateY",(pickupPoint: String)=> HotcellUtils.CalculateCoordinate(pickupPoint, 0))
+    spark.udf.register("CalculateZ",(pickupTime: String)=> HotcellUtils.CalculateCoordinate(pickupTime, 2))
     pickupInfo = spark.sql("select CalculateX(nyctaxitrips._c5) as x,CalculateY(nyctaxitrips._c5) as y, " +
       "CalculateZ(nyctaxitrips._c1) as z from nyctaxitrips")
 
     // Define the min and max of x, y, z
-    val minY = -74.50/HotcellUtils.coordinateStep
-    val maxY = -73.70/HotcellUtils.coordinateStep
-    val minX = 40.50/HotcellUtils.coordinateStep
-    val maxX = 40.90/HotcellUtils.coordinateStep
+    val minY = (-74.50/HotcellUtils.coordinateStep).toInt
+    val maxY = (-73.70/HotcellUtils.coordinateStep).toInt
+    val minX = (40.50/HotcellUtils.coordinateStep).toInt
+    val maxX = (40.90/HotcellUtils.coordinateStep).toInt
     val minZ = 1
     val maxZ = 31
     val numCells = (maxX - minX + 1)*(maxY - minY + 1)*(maxZ - minZ + 1)
-    val givenRectangle = printf("%d,%d,%d,%d",minX,minY,maxX,maxY)
+    val givenRectangle = "%d,%d,%d,%d".format(minX,minY,maxX,maxY)
 
     // using the max,min of x,y to create a rectangular boundary to eliminate outliers
     spark.udf.register("ST_Contains",(queryRectangle:String, pointString:String)=>
-      (HotzoneUtils.ST_Contains(queryRectangle, pointString)))
+      HotzoneUtils.ST_Contains(queryRectangle, pointString))
     // joining x,y coordinates
     spark.udf.register("joinCoordinates",(xCoordinate : Int, yCoordinate : Int)=>
-      (xCoordinate.toString + "," + yCoordinate.toString))
+      xCoordinate.toString + "," + yCoordinate.toString)
     println("Before boundary check")
     println(pickupInfo.count())
-    pickupInfo = spark.sql("select x,y,z from rectangle,point where ST_Contains(" + givenRectangle
-      + ",joinCoordinates(x,y))")
+    pickupInfo = spark.sql("select x,y,z, getKey(x,y,z) as key from nyctaxitrips where ST_Contains(" +
+      givenRectangle + ",joinCoordinates(x,y))")
+
+    // Getting the count of the unique tuples
+    pickupInfo = spark.sql("select x,y,z, count(key) from nyctaxitrips group by key")
+
+    // here loop thorugh the dataframe and populate the cude and for its indexes, do it on the fly (in the loop)
+    // in this 3-loop itself also get the total sum for the eligible points, number of cells is given
 
     println("After boundary check")
     var newCoordinateName = Seq("x", "y", "z")

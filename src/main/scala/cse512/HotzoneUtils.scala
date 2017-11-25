@@ -8,10 +8,11 @@ object HotzoneUtils {
     var doubleArr = arr.map(_.toDouble)
     var pointArr = pointString.split(",")
     var pointDoubleArr = pointArr.map(_.toDouble)
-    if (doubleArr(0) <= pointDoubleArr(0) && doubleArr(1) <= pointDoubleArr(1) && doubleArr(2) >= pointDoubleArr(0) && doubleArr(3) >= pointDoubleArr(1)) {
-      return true
+    if (doubleArr(0) <= pointDoubleArr(0) && doubleArr(1) <= pointDoubleArr(1) &&
+      doubleArr(2) >= pointDoubleArr(0) && doubleArr(3) >= pointDoubleArr(1)) {
+      true
     }else {
-     return false
+      false
     }
   }
 }
