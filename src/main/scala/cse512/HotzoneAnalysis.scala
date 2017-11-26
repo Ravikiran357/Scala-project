@@ -34,11 +34,11 @@ object HotzoneAnalysis {
     joinDf.createOrReplaceTempView("joinResult")
 
     //All zones with their count, sorted by "rectangle" string in an ascending order
-    val resultDF = spark.sql("select joinResult.rectangle as result_rectangle, count(*) as count " +
-      "from joinResult group by result_rectangle order by result_rectangle")
-    resultDF.createOrReplaceTempView("joinResult")
+    val resultDF = spark.sql("select rectangle, count(*) as count " +
+      "from joinResult group by rectangle order by rectangle")
+    resultDF.createOrReplaceTempView("joinResult2")
 
-    return resultDF
+    return resultDF.repartition(1)
   }
 
 }
