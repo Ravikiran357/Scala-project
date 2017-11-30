@@ -15,7 +15,7 @@ object HotcellUtils {
     coordinateOffset match
     {
       case 0 => result = Math.floor(inputString.split(",")(0).replace("(", "").toDouble / coordinateStep).toInt
-      case 1 => result = Math.floor(inputString.split(",")(1).replace(")","").toDouble / coordinateStep).toInt
+      case 1 => result = Math.floor(inputString.split(",")(1).replace(")","").toDouble/coordinateStep).toInt
       // We only consider the data from 2009 to 2012 inclusively, 4 years in total. Week 0 Day 0 is 2009-01-01
       case 2 => {
         val timestamp = HotcellUtils.timestampParser(inputString)
@@ -47,5 +47,12 @@ object HotcellUtils {
     return calendar.get(Calendar.DAY_OF_MONTH)
   }
 
-  // YOU NEED TO CHANGE THIS PART
+  def ST_Contains(x:Int, y:Int, minX: Int, minY: Int, maxX: Int, maxY: Int): Boolean = {
+    if (minX <= x && minY <= y && maxX >= x && maxY >= y) {
+      true
+    }else {
+      false
+    }
+    // YOU NEED TO CHANGE THIS PART
+  }
 }

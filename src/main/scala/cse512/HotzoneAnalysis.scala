@@ -1,7 +1,7 @@
 package cse512
 
 import org.apache.log4j.{Level, Logger}
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
 
 object HotzoneAnalysis {
 
@@ -12,33 +12,30 @@ object HotzoneAnalysis {
 
   def runHotZoneAnalysis(spark: SparkSession, pointPath: String, rectanglePath: String): DataFrame = {
 
-    var pointDf = spark.read.format("com.databricks.spark.csv").option("delimiter",";")
-        .option("header","false").load(pointPath)
+    var pointDf = spark.read.format("com.databricks.spark.csv").option("delimiter",";").option("header","false").load(pointPath);
     pointDf.createOrReplaceTempView("point")
 
     // Parse point data formats
-    spark.udf.register("trim",(string : String)=> string.replace("(", "").replace(")", ""))
+    spark.udf.register("trim",(string : String)=>(string.replace("(", "").replace(")", "")))
     pointDf = spark.sql("select trim(_c5) as _c5 from point")
     pointDf.createOrReplaceTempView("point")
 
     // Load rectangle data
-    val rectangleDf = spark.read.format("com.databricks.spark.csv").option("delimiter","\t")
-      .option("header","false").load(rectanglePath)
+    val rectangleDf = spark.read.format("com.databricks.spark.csv").option("delimiter","\t").option("header","false").load(rectanglePath);
     rectangleDf.createOrReplaceTempView("rectangle")
 
     // Join two datasets
-    spark.udf.register("ST_Contains",(queryRectangle:String, pointString:String) =>
-      HotzoneUtils.ST_Contains(queryRectangle, pointString))
-    val joinDf = spark.sql("select rectangle._c0 as rectangle, point._c5 as point from rectangle,point" +
-      " where ST_Contains(rectangle._c0,point._c5)")
+    spark.udf.register("ST_Contains",(queryRectangle:String, pointString:String)=>(HotzoneUtils.ST_Contains(queryRectangle, pointString)))
+    val joinDf = spark.sql("select rectangle._c0 as rectangle, point._c5 as point from rectangle,point where ST_Contains(rectangle._c0,point._c5)")
     joinDf.createOrReplaceTempView("joinResult")
+    val sortedDf = spark.sql("select rectangle, count(*) as count from joinResult where 1=1 group by rectangle order by rectangle")
 
-    //All zones with their count, sorted by "rectangle" string in an ascending order
-    val resultDF = spark.sql("select rectangle, count(*) as count " +
-      "from joinResult group by rectangle order by rectangle")
-    resultDF.createOrReplaceTempView("joinResult2")
 
-    return resultDF.repartition(1)
+    // YOU NEED TO CHANGE THIS PART
+
+//    sortedDf.show()
+
+    return sortedDf // YOU NEED TO CHANGE THIS PART
   }
 
 }
